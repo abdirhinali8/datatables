@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User List</title>
+    
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+    
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- DataTables JS -->
+    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+</head>
+<body>
+    <h1>User List</h1>
+
+    <!-- Filter Form -->
+    <form id="filter-form">
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name">
+        <label for="email">Email:</label>
+        <input type="text" id="email" name="email">
+        <button type="submit">Filter</button>
+    </form>
+    
+    <!-- Table to display the users -->
+    <table id="user-table" class="display">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Data will be inserted dynamically -->
+        </tbody>
+    </table>
+
+    <script>
+        $(document).ready(function() {
+            // Initialize the DataTable with server-side processing
+            var table = $('#user-table').DataTable({
+                "processing": true,
+                "serverSide": true,  // Use server-side processing
+                "pageLength": 10, 
+                "searching": false,  // Number of rows per page
+                "ajax": function(data, callback, settings) {
+                    // Calculate the page number and number of rows per page from DataTables settings
+                    var page = settings._iDisplayStart / settings._iDisplayLength + 1;
+                    var perPage = settings._iDisplayLength;
+                    var name = $('#name').val();  // Get name filter from form
+                    var email = $('#email').val();  // Get email filter from form
+
+                    // Fetch users from API with pagination and filtering
+                    $.getJSON(`/api/users?page=${page}&per_page=${perPage}&name=${name}&email=${email}`, function(response) {
+                        // Pass the data to DataTable for rendering
+                        callback({
+                            draw: settings.iDraw,
+                            recordsTotal: response.total,  // Total number of users
+                            recordsFiltered: response.total,  // Total number of users after filtering
+                            data: response.users.map(function(user) {
+                                return [
+                                    user.id,   // First column (ID)
+                                    user.name, // Second column (Name)
+                                    user.email // Third column (Email)
+                                ];
+                            })
+                        });
+                    });
+                }
+            });
+
+            // Handle filter form submission
+            $('#filter-form').on('submit', function(e) {
+                e.preventDefault();
+                table.ajax.reload();  // Reload table data with new filters
+            });
+        });
+    </script>
+    
+</body>
+</html>
